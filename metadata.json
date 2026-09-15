@@ -1,0 +1,6 @@
+{
+  "name": "DigiLocker, Aadhaar & PAN Training Portal",
+  "description": "A comprehensive digital citizen training portal providing step-by-step guides, interactive simulators, verified official government portal directory (UIDAI & Income Tax), eligibility checkers, and support for DigiLocker, Aadhaar, and PAN services.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

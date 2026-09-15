@@ -1,0 +1,80 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Registered citizen profile containing preferences, roles and account metadata",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "User identifier matching auth.uid"
+        },
+        "email": {
+          "type": "string",
+          "description": "Citizen email address"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Full citizen name as per official identification"
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "Profile picture URL"
+        },
+        "preferredLanguage": {
+          "type": "string",
+          "enum": ["en", "hi", "bn", "ta", "te", "mr"]
+        },
+        "role": {
+          "type": "string",
+          "enum": ["citizen", "admin", "supervisor"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "suspended", "pending"]
+        },
+        "loginCount": {
+          "type": "number"
+        },
+        "notes": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "lastLoginAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email"]
+    },
+    "AuthAuditLog": {
+      "title": "AuthAuditLog",
+      "description": "Audit record of sign in, sign up, and administrative operations",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "action": { "type": "string" },
+        "provider": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "status": { "type": "string" },
+        "metadata": { "type": "string" }
+      },
+      "required": ["userId", "email", "action"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Stores citizen account information and preferences"
+    },
+    "/auth_audit_logs/{logId}": {
+      "schema": "AuthAuditLog",
+      "description": "Stores authentication and administrative audit events"
+    }
+  }
+}

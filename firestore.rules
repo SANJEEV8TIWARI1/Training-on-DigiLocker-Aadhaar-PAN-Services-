@@ -1,0 +1,106 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny: All documents private unless explicitly permitted
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // =========================================================
+    // HELPER FUNCTIONS & AUTH GUARDS
+    // =========================================================
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isGoogleAuth() {
+      return isSignedIn() && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'sanjeevtiwari5530@gmail.com' ||
+        request.auth.token.email == 'fyit268sanjeev@gmail.com' ||
+        request.auth.token.email == 'admin@diginagrik.gov.in' ||
+        request.auth.token.email == 'superadmin@diginagrik.gov.in' ||
+        (request.auth.token.keys().hasAny(['admin']) && request.auth.token.admin == true)
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128;
+    }
+
+    // =========================================================
+    // 1. USERS COLLECTION (Sign In, Sign Up, Profile Sync)
+    // - Supports Google Sign-In / Sign-Up & Email / Password
+    // - Each authenticated user can create & manage their own profile
+    // - Prevents privilege escalation (regular users cannot set role=admin)
+    // - Administrators have full supervisory read, list, and update access
+    // =========================================================
+    match /users/{userId} {
+      // Individual document read: User themselves or Administrator
+      allow get: if isOwner(userId) || isAdmin();
+
+      // Collection query listing: Restricted exclusively to Administrators
+      allow list: if isAdmin();
+
+      // Sign-Up / Profile Creation (Google Account or Email Auth)
+      allow create: if isSignedIn() && isOwner(userId) && isValidId(userId) && (
+        // Non-admins cannot self-assign the 'admin' role
+        !request.resource.data.keys().hasAny(['role']) ||
+        request.resource.data.role != 'admin' ||
+        isAdmin()
+      );
+
+      // Profile Updates (Updating details, login counts, preferences)
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        (isOwner(userId) && isValidId(userId) && (
+          // Ensure citizen cannot elevate their role to admin
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']) ||
+          request.resource.data.role == resource.data.role
+        ))
+      );
+
+      // Deletion: User can delete their own account or Admin can moderate
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    // =========================================================
+    // 2. AUTH AUDIT LOGS (Login, Sign-Up & Activity Tracking)
+    // - Authenticated users & Google sign-ins can log auth events
+    // - Viewing and auditing is restricted to Administrators
+    // =========================================================
+    match /auth_audit_logs/{logId} {
+      allow create: if isSignedIn();
+      allow get, list, update, delete: if isAdmin();
+    }
+
+    match /audit/{logId} {
+      allow create: if isSignedIn();
+      allow get, list, update, delete: if isAdmin();
+    }
+
+    // =========================================================
+    // 3. ADMIN MANAGEMENT & METRICS
+    // - Restricted exclusively to authorized administrators
+    // =========================================================
+    match /admin/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+    // =========================================================
+    // 4. TEST / CONNECTION PROBE
+    // =========================================================
+    match /test/{docId} {
+      allow read: if true;
+    }
+  }
+}
+
